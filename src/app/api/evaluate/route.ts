@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import Groq from "groq-sdk";
+import { Groq } from "groq-sdk";
 
 export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
@@ -19,26 +19,28 @@ export async function POST(req: Request) {
         const { profession, caseTitle, description, solution, systemLogic, idealConcepts } = await req.json();
 
         const systemPrompt = `Ты — Senior Mentor и эксперт в области аналитики. Твоя специализация: ${profession}. 
-    Оцени решение кейса "${caseTitle}".
-    Описание кейса: ${description}
-    Логика оценки и ожидаемые аспекты: ${systemLogic}
-    Ключевые концепции, которые должны быть отражены: ${idealConcepts?.join(', ')}
-    
-    Оцени решение пользователя максимально объективно и конструктивно. Если решение отсутствует или не относится к теме, ставь 0.
-    Если решение качественное, давай развернутый фидбек.
-    {
-      "score": number,
-      "criteria": {
-        "logic": "оценка (0-10)",
-        "depth": "оценка (0-10)",
-        "practicality": "оценка (0-10)"
-      },
-      "verdict": "краткое резюме",
-      "errors": ["список ошибок"],
-      "missing_points": ["чего не хватает"],
-      "recommendation": "как улучшить",
-      "ideal_concepts": ["ключевые термины"]
-    }`;
+Оцени решение кейса "${caseTitle}".
+Описание кейса: ${description}
+Логика оценки и ожидаемые аспекты: ${systemLogic}
+Ключевые концепции, которые должны быть отражены: ${idealConcepts?.join(', ')}
+
+Оцени решение пользователя максимально объективно и конструктивно. Если решение отсутствует или не относится к теме, ставь 0.
+Если решение качественное, давай развернутый фидбек.
+
+ВЫХОДНЫЕ ДАННЫЕ ДОЛЖНЫ БЫТЬ В ФОРМАТЕ JSON:
+{
+  "score": number,
+  "criteria": {
+    "logic": "оценка (0-10)",
+    "depth": "оценка (0-10)",
+    "practicality": "оценка (0-10)"
+  },
+  "verdict": "краткое резюме",
+  "errors": ["список ошибок"],
+  "missing_points": ["чего не хватает"],
+  "recommendation": "как улучшить",
+  "ideal_concepts": ["ключевые термины"]
+}`;
 
         const groq = new Groq({ apiKey });
         const completion = await groq.chat.completions.create({
@@ -50,13 +52,23 @@ export async function POST(req: Request) {
             response_format: { type: "json_object" },
         });
 
-        const result = JSON.parse(completion.choices[0].message.content || "{}");
-        return NextResponse.json(result);
+        const rawContent = completion.choices[0].message.content || "{}";
+
+        try {
+            const result = JSON.parse(rawContent);
+            return NextResponse.json(result);
+        } catch (parseError) {
+            console.error("Failed to parse LLM response as JSON:", rawContent);
+            return NextResponse.json(
+                { error: "Ошибка при обработке ответа ИИ" },
+                { status: 500 }
+            );
+        }
 
     } catch (error: any) {
         console.error("Evaluation error:", error);
         return NextResponse.json(
-            { error: "Ошибка сервера при оценке" },
+            { error: error.message || "Ошибка сервера при оценке" },
             { status: 500 }
         );
     }
