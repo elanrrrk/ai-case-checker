@@ -40,6 +40,7 @@ export async function POST(req: Request) {
       "ideal_concepts": ["ключевые термины"]
     }`;
 
+        const groq = new Groq({ apiKey });
         const completion = await groq.chat.completions.create({
             messages: [
                 { role: "system", content: systemPrompt },
