@@ -54,6 +54,7 @@ export default function Home() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           caseTitle: selectedCase.title,
+          description: selectedCase.description,
           profession: selectedCase.profession,
           solution: solution,
           systemLogic: selectedCase.systemLogic,

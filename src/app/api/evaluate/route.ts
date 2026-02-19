@@ -16,14 +16,16 @@ export async function POST(req: Request) {
             );
         }
 
-        const groq = new Groq({ apiKey });
-        const { profession, caseTitle, caseText, userSolution } = await req.json();
+        const { profession, caseTitle, description, solution, systemLogic, idealConcepts } = await req.json();
 
         const systemPrompt = `Ты — Senior Mentor и эксперт в области аналитики. Твоя специализация: ${profession}. 
     Оцени решение кейса "${caseTitle}".
-    Кейс: ${caseText}
+    Описание кейса: ${description}
+    Логика оценки и ожидаемые аспекты: ${systemLogic}
+    Ключевые концепции, которые должны быть отражены: ${idealConcepts?.join(', ')}
     
-    Отвечай строго в формате JSON:
+    Оцени решение пользователя максимально объективно и конструктивно. Если решение отсутствует или не относится к теме, ставь 0.
+    Если решение качественное, давай развернутый фидбек.
     {
       "score": number,
       "criteria": {
@@ -41,7 +43,7 @@ export async function POST(req: Request) {
         const completion = await groq.chat.completions.create({
             messages: [
                 { role: "system", content: systemPrompt },
-                { role: "user", content: `Решение пользователя: ${userSolution}` }
+                { role: "user", content: `Решение пользователя: ${solution}` }
             ],
             model: "llama-3.3-70b-versatile",
             response_format: { type: "json_object" },
